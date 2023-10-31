@@ -1,61 +1,53 @@
 package Problems.Problem1_EchoServer.src.main.java;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 
-/**
- * The EchoClient class represents a simple client application that connects to an echo server.
- *
- * <p>Upon starting, the client will connect to the server using the specified hostname and port.
- * The client reads lines of text from the console and sends them to the server. The server responds
- * by echoing the sent text back to the client, which the client then displays.
- * <p>
- * The client will continue to read and send lines of text until terminated or an end-of-stream signal is received.
- */
+
 public class EchoClient {
 
-    /**
-     * The main method for the EchoClient application.
-     *
-     * <p>This method sets up a socket connection to a specified server and port. After the connection
-     * is established, the client reads lines of text from the console, sends them to the server,
-     * and then displays the echoed response from the server.
-     *
-     * @param args Not used.
-     * @throws IOException if an I/O error occurs when creating the socket connection, or when sending
-     *                     or receiving data.
-     */
-    public static void main(String[] args) throws IOException {
-        // The hostname (IP Address) of the server to connect to.
+
+    public static void main(String[] args) {
         String hostName = "localhost";
 
-        // The port number on which the client will connect to the server. Must match the server's listening port.
         int portNumber = 5555;
 
         try (
-                // Socket connection to the server.
                 Socket echoSocket = new Socket(hostName, portNumber);
 
-                // PrintWriter to send data to the server.
-                PrintWriter out = new PrintWriter(echoSocket.getOutputStream(), true);
+                DataOutputStream out = new DataOutputStream(echoSocket.getOutputStream());
 
-                // BufferedReader to read data from the server.
-                BufferedReader in = new BufferedReader(new InputStreamReader(echoSocket.getInputStream()));
+                DataInputStream in = new DataInputStream(echoSocket.getInputStream());
 
-                // BufferedReader to read user input from the console.
                 BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in))
         ) {
-            String userInput;
-            System.out.println("Message from server: " + in.readLine());
+            System.out.println("Server started and connected to client through: " +
+                    "\nHostAddress: " + hostName +
+                    "\nPortNumber: " + portNumber);
+            while (true) {
+                String userInput = stdIn.readLine();
+                if (userInput.isEmpty()) {
+                    continue;
+                }
 
-            // Read user input from the console and send to the server until an end-of-stream signal is received.
-            while ((userInput = stdIn.readLine()) != null) {
-                out.println(userInput);
-                System.out.println("Echoed from server: " + in.readLine());
+                byte[] bytes = userInput.getBytes(StandardCharsets.UTF_8);
+                out.writeInt(bytes.length);
+                out.write(bytes);
+
+                int length = in.readInt();
+
+                if (length < 0 || length > 100_000) {
+                    System.out.println("Invalid message length received");
+                    return;
+                }
+
+                byte[] responseBytes = new byte[length];
+                in.readFully(responseBytes);
+                String echoedMessage = new String(responseBytes, StandardCharsets.UTF_8);
+
+                System.out.println("Received from server: " + echoedMessage);
             }
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host " + hostName);
