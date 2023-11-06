@@ -71,7 +71,6 @@ public class ChatRoomServer {
                 Socket clientSocket = serverSocket.accept();
                 clientSocket.setSoTimeout(ChatRoomServer.SOCKET_TIMEOUT);
                 executorService.execute(() -> handleClient(clientSocket));
-                clientSocket.close();
             }
 
         } catch (IOException e) {
